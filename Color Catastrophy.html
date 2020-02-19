@@ -13,82 +13,123 @@
 </body>
 </html>
 <script>
+//grab a handle to the stage div (the board)
 var stage = $('#stage');
+//hide the stage
 stage.hide();
+// make the stage the right size
 var stageSize = setStageDimensions();
+//set the initial difficulty
 var difficulty = 4;
+//get a random puzzle type
 var puzzletype = Math.floor(Math.random()*3);
+//get thead stage size
 var tokenSize = stageSize / difficulty;
+// store all tokens as a single array
 var tokenArray = [];
+// store the id of a cell that is clicked
 var sourceID;
+// store the current gamestate
 var gamestate = [];
+// store the current number of moves
 var moves = 0;
+// store the solution to the puzzle
 var solution = [];
+// store the distance of the stage to the edge fo the screen
 var stageOffset;
 
+//Code begins executing here
 initGame();
 
+//Running this function will restart the game.
 function initGame(){
+	//get a random puzzle type
 	puzzletype = Math.floor(Math.random()*3);
 	
+	// if the puzzle is an even numbered difficulty, and you picked puzzle type 2, pick again bro
 	while (difficulty%2 == 0 && puzzletype == 2){
+		// (pick again bro)
 		puzzletype = Math.floor(Math.random()*3);
 	}
 	
+	// if you're on level 5, I want you to get puzzle type 2 automatically, you deserve it
 	if(difficulty == 5){puzzletype = 2;}
 	
+	// the tokens are the same size in pixels as the size of the stage divided by the number of squares along the edge
 	tokenSize = stageSize / difficulty;
 	tokenArray = [];
 	gamestate = [];
+	
 	moves = 0;
-
+	
+	// Generate a solution based on the settings we picked
 	populateStage();
+	// save the solution for later
 	solution = getState();
+	// right now the current gamestate is also the same as the solution
 	gamestate = getState();
 	
+	// when people let go of the mouse over empty space, dont change the board, just redraw it
 	registerEmptyRelease();
 
+	//take the solution we generated, and create the graphical display of it (the place its drawn is hidden right now)
 	drawBoard(gamestate, false);
+	
+	//fade in the solution slowly, then fade it back out to invisible, but faster
 	stage.fadeIn(3000).fadeOut(1000, function(){
+		//shuffle the non moving colors in the current gamestate
 		shuffleGame();
+		//redraw the board with the new shuffled game state
 		drawBoard(gamestate, false);
+	//fade the board back in with a medium speed for dramatic effect...	
 	}).fadeIn(2000);
 	
-
+	// take note of how far away the left side of the board is from the left side of the screen
 	stageOffset = stage.offset();
 }
 
+// if people let go of the mouse outside the board, just redraw the board
 function registerEmptyRelease(){
 	$("body").mouseup(function(){drawBoard(gamestate, false);});
 }
 
+// look at the puzzle type and shuffle the current gamestate accordingly
 function shuffleGame(){
+//this will store the colors during shuffling
 var pool = [];
 
+	//definitions for how to shuffle the various puzzle types
 	if(puzzletype == 0){
 		for (var y = 0; y < (difficulty); y++){
+			//this one doesnt shuffle the left or rightmost column
 			for (var x = 1; x < difficulty -1; x++){
+				//we put the valid colors into the pool
 				pool.push(gamestate[y][x]);
 			}
 		}
-	
+		
+		// looping back over the same rules
 		for (var y = 0; y < (difficulty); y++){
 			for (var x = 1; x < difficulty-1; x++){
-			
+				//pull a random color from the pool
 				var rand = Math.floor(Math.random()*pool.length);
+				//put it in the current spot in the loop
 				gamestate[y][x] = pool[rand];
+				//take the color out of the pool
 				pool.splice(rand, 1);
 			}
 		}
 	} 
 
 	if(puzzletype == 1){
+		// this puzzle type doesnt shuffle the top or bottom row
 		for (var y = 1; y < (difficulty - 1); y++){
 			for (var x = 0; x < difficulty; x++){
 				pool.push(gamestate[y][x]);
 			}
 		}
-	
+		
+		// same stuff goin on here as the previous and future puzzle types
 		for (var y = 1; y < (difficulty - 1); y++){
 			for (var x = 0; x < difficulty; x++){
 			
@@ -101,7 +142,9 @@ var pool = [];
 	
 	if(puzzletype ==2){
 		for (var y = 0; y < (difficulty); y++){
+			//this puzzle type doesnt shuffle every other cell
 			for (var x = 0; x < difficulty; x+=2){
+				//if its an even numbered row, the unshuffled cells are odd numbered
 				if (x == 0 && y%2 == 0){x = 1};
 				pool.push(gamestate[y][x]);
 			}
@@ -119,32 +162,38 @@ var pool = [];
 	}
 }
 
-function indextoID(index){
-	var y = Math.floor(index / difficulty);
-	var x = index%difficulty;
-	return("x"+x+"y"+y);
-}
-
+//return the current state of the board as a 2d array of rpg values
 function getState(){
-	var tokens = $(".token");
+	// this will hold the array
 	var results = [];
+	//loop through every column
 	for (var y = 0; y < difficulty; y++){
 		var row = [];
+		//and every row
 		for (var x = 0; x < difficulty; x++){
+			//reconstruct the id for the element on the screen at this position (ie "#x2y3")
 			var id = "#x"+x+"y"+y;
+			//get the background color of the cell with this id, and store it at the end of the row
 			row.push($(id).css("background-color"));
 		}
+		//store the row at the bottom of the array
 		results.push(row);
 	}
+	//send the completed matrix back to the caller
 	return (results);
 }
 
+//draw the board from the game state passed in, and check for a victory unless told not to
 function drawBoard(gamestate, victorycheck = true){
+	//clear the stage holding the board.
 	$(stage).html("");
+	//loop through every column and row of the game state
 	for (var height = 0; height < difficulty; height++){
 		for (var width = 0; width < difficulty; width++){
+			//construct an id for the div that will represent this cell
 			var id = "x"+width+"y"+height;
-			
+			//check the puzzle type, some pieces will be 'markers' and cant move, others will be 'tokens' and can move
+			//these rules match the rules used when shuffling colors based on puzzle type
 			if (puzzletype == 1 && height == 0) {cellclass = 'marker'}
 			else if (puzzletype == 1 && height == difficulty - 1) {cellclass = 'marker'}
 			
@@ -156,140 +205,241 @@ function drawBoard(gamestate, victorycheck = true){
 			
 			else {cellclass = 'token'}
 			
+			// for the current position in the loop, take the color from the game state 
+			// and make a div on the screen, with the proper class (marker or token)
+			// and tell it to listen for incoming click events. Give the the new div the ID contstructed earlier.
 			stage.append("<div class='"+cellclass+"' onmousedown='toFront(this)' onmouseup='release(this)' id='"+id+"'></div>");
+			//add the "#" tag to the front of this divs ID in order to address it and change its properties below
 			id = "#"+id;
+			//set the height of the div to the token size that we calculated during setup
 			$(id).css("height", tokenSize+"px");
+			//set the width the same way
 			$(id).css("width", tokenSize+"px");
+			//change the display properties of the div to line up properly on the screen next to each other
 			$(id).css("display", "inline-block");
+			//set the background color of the div to the rgb value stored at the current position in the gamestate
 			$(id).css("background-color", gamestate[height][width]);
 		}
 	}
+	//after drawing the screen is done, take every cell which is a token, (not a marker) and make it draggable
 	tokenArray = $(".token");
-	$(".token").draggable({
-		containment: "#boundary" ,
-		grid: [ tokenSize, tokenSize ]
+	$(".token").draggable({		
+		// make the divs snap into an invisible grid with cells that are the same size as the tokens
+		grid: [ tokenSize, tokenSize ],
+		// you cant drag outside the boundary which is set outside the stage in the html
+		containment: "#boundary"
+
 	});
 	
+	// put black dots on the cells that dont move
 	markMarkers();
 
-	
+	// if the game state matches the solution, AND if you havent specified that we shouldnt be checking for victory
 	if(checkSolution(gamestate) && victorycheck == true){
+		//you win, fade out the stage slowly
 		stage.fadeOut().fadeIn(3000);
+		//put the difficulty button on the screen
 		addDifficultyButton();
 	} else {
+		//if you didnt win, just add the number of moves that youve taken under the board
 		stage.append("Moves: "+moves);
 	}
 }
+
+// put the difficulty button on the screen
 function addDifficultyButton(){
+	// add this to the outer boundary div so it doesnt get redrawn with the board
+	// i put it in a span in order to delete the surrounding code along with the button later
 	$("#boundary").append("<span id='diffbutton'><BR><button onclick='increaseDifficulty();'>Increase Difficulty</button></span>");
 }
 
+// When you click the difficulty button, remove it from the page entirely
 function increaseDifficulty(){
+	// remove the button
 	$("#diffbutton").remove();
+	//increase the difficulty
 	difficulty++;
+	//restart the entire game
 	initGame();
 }
 
+// put black dots on the non moving parts
 function markMarkers(){
+	//find the center of the div, by dividing the size of a token in half
 	var center = Math.floor(tokenSize / 2);
+	// set how big the dot will be in pixels
 	var dotradius = 5;
+	//this creates an svg area inside the marker div, with the same dimensions as the marker div
+	//and it creates the dot in the center of the svg container. I build the text string of the code first.
 	var markercode = "<svg width="+tokenSize+" height="+tokenSize+"><circle cx='"+center+"px', cy='"+center+"px', r='"+dotradius+"' /></svg>";
+	//and then assign it to every element on the screen with the 'marker' class
 	$(".marker").html(markercode);
 }
 
+//this is where the colors are created, in order to create solutions
+//before they are placed into a game state array
 function populateStage(){
+	//how much does red increase by
 	var redincrement = Math.floor(200 / difficulty);
+	//how much does green increase by
 	var greenincrement = Math.floor(150 / difficulty);
+	//give green one unit so it isnt zero
 	var green = greenincrement;
+	// pick a flat value for blue accross the board, its random here and only goes up to 149
+	// so that the boards arent overly blue all the time
 	var blue = Math.floor(Math.random()*150);
+	//heres the array to hold the colors
 	var matrix = [];
+	//loop through the positions in the array, there will be as many rows and columns as the difficulty level
 	for (var height = 0; height < difficulty; height++){
 		var row = [];
+		//every row, start the red value over at one unit of its increment value, plus a slight shift
 		var red = redincrement+25;
+		//this is similar to the drawBoard function, check there for explanation
 		for (var width = 0; width < difficulty; width++){
 			var id = "x"+width+"y"+height;
 			stage.append("<div class='token' onmousedown='toFront(this)' onmouseup='release(this)' id='"+id+"'></div>");
+			
 			id = "#"+id;
 			$(id).css("height", tokenSize+"px");
 			$(id).css("width", tokenSize+"px");
 			$(id).css("display", "inline-block");
+			// here we are setting the background color of the new div to the color that we have been constructing
 			$(id).css("background-color", "rgb("+red+", "+green+", "+blue+")");
+			// we increase the red value, as we are about to move to the next cell
 			red+=redincrement;
+			// add the new rgb back ground color of the newly created div to the end of the row of the array
 			row.push($(id).css("background-color"));
 		}
+		// after each row, increase green by its increment
 		green+=greenincrement;
+		// and put the row at the end of the array
 		matrix.push(row);
 	}
+	//store everything that is a token in the golbal token array
 	tokenArray = $(".token");
+	
+	//make all tokens dragable
 	$(".token").draggable({
+		//contain to div outside of board
 		containment: "#boundary" ,
+		//constain to grid of the same size as the tokens
 		grid: [ tokenSize, tokenSize ]
 	});
 }
 
+//when you let go of the mouse button
 function release(token){
+
+
+	// if the thing you clicked when you first clicked the mouse was not a non moving part of the puzzle (marker)
 	if (sourceID != "marker"){
+		// x is the distance between the left of the token your mouse is on right now, and the left of the screen
 		var x = $(token).offset().left;
+		// y is the distance between the top of that token, and the top of the screen
 		var y = $(token).offset().top;
+		//subtract the distance of the token from the edge of the screen,
+		//from the distance of the board, to the edge of the screen,
+		//and store that back into x and y, now they store the distance from the token to the edge of the board
 		x -= stageOffset.left;
 		y -= stageOffset.top;
+		//now take that distance, and divide each one by the size of the token in pixels
+		//round them to the closest whole number, and store them back into x and y
 		x = Math.round(x / tokenSize);
 		y = Math.round(y / tokenSize);
-
 		
+		//now you know the id of the cell that you released the mouse on
 		var targetID = "#x"+x+"y"+y;
-		
+
+		// get the color of the cell we originally clicked on
 		var sourceColor = $("#"+sourceID).css("background-color");
+		// get the color of the cell we let go of the mouse on
 		var targetColor = $(targetID).css('background-color');
+		// cut up the id of the cell we clicked on originally (ie x1y1)
+		// first split it at the letter x
 		var sourcex = sourceID.split("x");
+		// take the part after the x (ie 1y1)
 		sourcex = sourcex[1];
+		// now split that at the y
 		sourcex.split("y");
+		// call the part after the y sourcey
 		sourcey = sourcex[2];
+		//call the part before the y sourcex
 		sourcex = sourcex[0];
 		
+		//if the cell we let go of the mouse on is  not a marker
 		if($(targetID).attr('class') != "marker"){
+			// put the color of the cell we originally clicked on at the location that we let go
+			// as it corresponds to the 2d array of colors in the game state
 			gamestate[y][x] = sourceColor;
+			// do the same in reverse, take the color we let go on, and put it in the spot of the
+			// cell that we originally clicked in the gamestate
 			gamestate[sourcey][sourcex] = targetColor;
 		}
 		
+		// increase the number in the move indicator
 		moves++;
+		
+		// redraw the board with the updated game state
 		drawBoard(gamestate);
 	}
 }
-	
+
+// check the solution against a given game state
 function checkSolution(gamestate){
+	// victory will be true, until one of the cells does not match, then it will be set to false at that pointer
 	var victory = true;
 
+	// loop through every row and column of square 2d matrix of size 'difficulty'
 	for (var x = 0; x<difficulty; x++){
 		for(var y = 0; y<difficulty; y++){
+			//at each position in the matrix, check if the corresponding spot on the given game state
+			//matches the same spot on the solution game state
 			if(gamestate[x][y] != solution[x][y]){
+				//if at any point the 2 states 2 not match, the victory condition is false
 				victory = false;
 			}
 		}
 	}
+	//pass back the victory condition
 	return victory;
 }
 
+// move a cell to the front of the z order
+// so that it can be seen above other cells when moving it around
+// this is also the function which is called when you initially click on a movable token
 function toFront(frontToken){
+	// find out if the cell clicked is a marker, or a token (its stored in the class of the div)
 	var cellclass = $(frontToken).attr('class');
+	// if the cell is a not a marker
 	if (cellclass != "marker"){	
+		//store the id of the div into the global 'sourceID' variable
 		sourceID = $(frontToken).attr('id');
 	} else {
+		//otherwise this is a marker, store that in the sourceID variable instead
+		//so that when we let go of the mouse, we know not to change the game state
+		// and can just redraw instead
+		//(IT STILL COSTS A POINT!)
 		sourceID = "marker";
 	}
 	
 	
-	
+	//loop through every token on the screen
 	for(var index = 0; index < tokenArray.length; index++){
-		var style = tokenArray[index].getAttribute("style");
+		// set the z index of those tokens to 1
 		$(tokenArray[index]).css("z-index", 1);
 	}
+	// set the z index of the token just clicked to 2
 	$(frontToken).css('z-index', 2);
 }
 
+//make the board container change size based on the size of the page
 function setStageDimensions(){
+	// the height of the board is 80% of the height of the page
 	stage.height("80%");
+	// the width is the same as the height
 	stage.width(stage.height());
+	// pass this size back to the caller, its used to determine the token size
 	return(stage.height());
 }
 </script>

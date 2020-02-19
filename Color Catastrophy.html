@@ -16,30 +16,50 @@
 var stage = $('#stage');
 stage.hide();
 var stageSize = setStageDimensions();
-var difficulty = 8;
+var difficulty = 4;
 var puzzletype = Math.floor(Math.random()*3);
 var tokenSize = stageSize / difficulty;
 var tokenArray = [];
 var sourceID;
 var gamestate = [];
 var moves = 0;
+var solution = [];
+var stageOffset;
 
-populateStage();
-var solution = getState();
-gamestate = getState();
+initGame();
 
-drawBoard(gamestate, false);
-stage.fadeIn(3000).fadeOut(1000, function(){
-	shuffleGame();
+function initGame(){
+	puzzletype = Math.floor(Math.random()*3);
+	
+	while (difficulty%2 == 0 && puzzletype == 2){
+		puzzletype = Math.floor(Math.random()*3);
+	}
+	
+	if(difficulty == 5){puzzletype = 2;}
+	
+	tokenSize = stageSize / difficulty;
+	tokenArray = [];
+	gamestate = [];
+	moves = 0;
+
+	populateStage();
+	solution = getState();
+	gamestate = getState();
+	
+	registerEmptyRelease();
+
 	drawBoard(gamestate, false);
-}).fadeIn(2000);
+	stage.fadeIn(3000).fadeOut(1000, function(){
+		shuffleGame();
+		drawBoard(gamestate, false);
+	}).fadeIn(2000);
+	
 
-var stageOffset = stage.offset();
-
-registerEmptyRelease();
+	stageOffset = stage.offset();
+}
 
 function registerEmptyRelease(){
-	$("body").mouseup(function(){drawBoard(gamestate);});
+	$("body").mouseup(function(){drawBoard(gamestate, false);});
 }
 
 function shuffleGame(){
@@ -151,12 +171,23 @@ function drawBoard(gamestate, victorycheck = true){
 	});
 	
 	markMarkers();
+
 	
 	if(checkSolution(gamestate) && victorycheck == true){
 		stage.fadeOut().fadeIn(3000);
-	};
-	
-	stage.append("Moves: "+moves);
+		addDifficultyButton();
+	} else {
+		stage.append("Moves: "+moves);
+	}
+}
+function addDifficultyButton(){
+	$("#boundary").append("<span id='diffbutton'><BR><button onclick='increaseDifficulty();'>Increase Difficulty</button></span>");
+}
+
+function increaseDifficulty(){
+	$("#diffbutton").remove();
+	difficulty++;
+	initGame();
 }
 
 function markMarkers(){

@@ -1,0 +1,264 @@
+<html>
+<head>
+<script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
+<script src = "https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+</head>
+<body>
+<center>
+<h1>Color Catastrophe</h1>
+<div id="boundary" style="display: inline-block; margin:5px;">
+<div id="stage" style="margin:5px;">
+</div></div>
+</center>
+</body>
+</html>
+<script>
+var stage = $('#stage');
+stage.hide();
+var stageSize = setStageDimensions();
+var difficulty = 8;
+var puzzletype = Math.floor(Math.random()*3);
+var tokenSize = stageSize / difficulty;
+var tokenArray = [];
+var sourceID;
+var gamestate = [];
+var moves = 0;
+
+populateStage();
+var solution = getState();
+gamestate = getState();
+
+drawBoard(gamestate, false);
+stage.fadeIn(3000).fadeOut(1000, function(){
+	shuffleGame();
+	drawBoard(gamestate, false);
+}).fadeIn(2000);
+
+var stageOffset = stage.offset();
+
+registerEmptyRelease();
+
+function registerEmptyRelease(){
+	$("body").mouseup(function(){drawBoard(gamestate);});
+}
+
+function shuffleGame(){
+var pool = [];
+
+	if(puzzletype == 0){
+		for (var y = 0; y < (difficulty); y++){
+			for (var x = 1; x < difficulty -1; x++){
+				pool.push(gamestate[y][x]);
+			}
+		}
+	
+		for (var y = 0; y < (difficulty); y++){
+			for (var x = 1; x < difficulty-1; x++){
+			
+				var rand = Math.floor(Math.random()*pool.length);
+				gamestate[y][x] = pool[rand];
+				pool.splice(rand, 1);
+			}
+		}
+	} 
+
+	if(puzzletype == 1){
+		for (var y = 1; y < (difficulty - 1); y++){
+			for (var x = 0; x < difficulty; x++){
+				pool.push(gamestate[y][x]);
+			}
+		}
+	
+		for (var y = 1; y < (difficulty - 1); y++){
+			for (var x = 0; x < difficulty; x++){
+			
+				var rand = Math.floor(Math.random()*pool.length);
+				gamestate[y][x] = pool[rand];
+				pool.splice(rand, 1);
+			}
+		}
+	} 
+	
+	if(puzzletype ==2){
+		for (var y = 0; y < (difficulty); y++){
+			for (var x = 0; x < difficulty; x+=2){
+				if (x == 0 && y%2 == 0){x = 1};
+				pool.push(gamestate[y][x]);
+			}
+		}
+		
+		for (var y = 0; y < (difficulty); y++){
+			for (var x = 0; x < difficulty; x+=2){
+				if (x == 0 && y%2 == 0){x = 1};
+				
+				var rand = Math.floor(Math.random()*pool.length);
+				gamestate[y][x] = pool[rand];
+				pool.splice(rand, 1);
+			}
+		}
+	}
+}
+
+function indextoID(index){
+	var y = Math.floor(index / difficulty);
+	var x = index%difficulty;
+	return("x"+x+"y"+y);
+}
+
+function getState(){
+	var tokens = $(".token");
+	var results = [];
+	for (var y = 0; y < difficulty; y++){
+		var row = [];
+		for (var x = 0; x < difficulty; x++){
+			var id = "#x"+x+"y"+y;
+			row.push($(id).css("background-color"));
+		}
+		results.push(row);
+	}
+	return (results);
+}
+
+function drawBoard(gamestate, victorycheck = true){
+	$(stage).html("");
+	for (var height = 0; height < difficulty; height++){
+		for (var width = 0; width < difficulty; width++){
+			var id = "x"+width+"y"+height;
+			
+			if (puzzletype == 1 && height == 0) {cellclass = 'marker'}
+			else if (puzzletype == 1 && height == difficulty - 1) {cellclass = 'marker'}
+			
+			else if (puzzletype == 0 && width == 0) {cellclass = 'marker'}
+			else if (puzzletype == 0 && width == difficulty - 1) {cellclass = 'marker'}
+			
+			else if (puzzletype == 2 && Math.floor(height%2) == 0 && Math.floor(width%2)== 0){cellclass = 'marker'}
+			else if (puzzletype == 2 && Math.floor(height%2) == 1 && Math.floor(width%2)== 1){cellclass = 'marker'}
+			
+			else {cellclass = 'token'}
+			
+			stage.append("<div class='"+cellclass+"' onmousedown='toFront(this)' onmouseup='release(this)' id='"+id+"'></div>");
+			id = "#"+id;
+			$(id).css("height", tokenSize+"px");
+			$(id).css("width", tokenSize+"px");
+			$(id).css("display", "inline-block");
+			$(id).css("background-color", gamestate[height][width]);
+		}
+	}
+	tokenArray = $(".token");
+	$(".token").draggable({
+		containment: "#boundary" ,
+		grid: [ tokenSize, tokenSize ]
+	});
+	
+	markMarkers();
+	
+	if(checkSolution(gamestate) && victorycheck == true){
+		stage.fadeOut().fadeIn(3000);
+	};
+	
+	stage.append("Moves: "+moves);
+}
+
+function markMarkers(){
+	var center = Math.floor(tokenSize / 2);
+	var dotradius = 5;
+	var markercode = "<svg width="+tokenSize+" height="+tokenSize+"><circle cx='"+center+"px', cy='"+center+"px', r='"+dotradius+"' /></svg>";
+	$(".marker").html(markercode);
+}
+
+function populateStage(){
+	var redincrement = Math.floor(200 / difficulty);
+	var greenincrement = Math.floor(150 / difficulty);
+	var green = greenincrement;
+	var blue = Math.floor(Math.random()*150);
+	var matrix = [];
+	for (var height = 0; height < difficulty; height++){
+		var row = [];
+		var red = redincrement+25;
+		for (var width = 0; width < difficulty; width++){
+			var id = "x"+width+"y"+height;
+			stage.append("<div class='token' onmousedown='toFront(this)' onmouseup='release(this)' id='"+id+"'></div>");
+			id = "#"+id;
+			$(id).css("height", tokenSize+"px");
+			$(id).css("width", tokenSize+"px");
+			$(id).css("display", "inline-block");
+			$(id).css("background-color", "rgb("+red+", "+green+", "+blue+")");
+			red+=redincrement;
+			row.push($(id).css("background-color"));
+		}
+		green+=greenincrement;
+		matrix.push(row);
+	}
+	tokenArray = $(".token");
+	$(".token").draggable({
+		containment: "#boundary" ,
+		grid: [ tokenSize, tokenSize ]
+	});
+}
+
+function release(token){
+	if (sourceID != "marker"){
+		var x = $(token).offset().left;
+		var y = $(token).offset().top;
+		x -= stageOffset.left;
+		y -= stageOffset.top;
+		x = Math.round(x / tokenSize);
+		y = Math.round(y / tokenSize);
+
+		
+		var targetID = "#x"+x+"y"+y;
+		
+		var sourceColor = $("#"+sourceID).css("background-color");
+		var targetColor = $(targetID).css('background-color');
+		var sourcex = sourceID.split("x");
+		sourcex = sourcex[1];
+		sourcex.split("y");
+		sourcey = sourcex[2];
+		sourcex = sourcex[0];
+		
+		if($(targetID).attr('class') != "marker"){
+			gamestate[y][x] = sourceColor;
+			gamestate[sourcey][sourcex] = targetColor;
+		}
+		
+		moves++;
+		drawBoard(gamestate);
+	}
+}
+	
+function checkSolution(gamestate){
+	var victory = true;
+
+	for (var x = 0; x<difficulty; x++){
+		for(var y = 0; y<difficulty; y++){
+			if(gamestate[x][y] != solution[x][y]){
+				victory = false;
+			}
+		}
+	}
+	return victory;
+}
+
+function toFront(frontToken){
+	var cellclass = $(frontToken).attr('class');
+	if (cellclass != "marker"){	
+		sourceID = $(frontToken).attr('id');
+	} else {
+		sourceID = "marker";
+	}
+	
+	
+	
+	for(var index = 0; index < tokenArray.length; index++){
+		var style = tokenArray[index].getAttribute("style");
+		$(tokenArray[index]).css("z-index", 1);
+	}
+	$(frontToken).css('z-index', 2);
+}
+
+function setStageDimensions(){
+	stage.height("80%");
+	stage.width(stage.height());
+	return(stage.height());
+}
+</script>

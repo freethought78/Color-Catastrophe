@@ -87,12 +87,17 @@ var moves = 0;
 var solution = [];
 // store the distance of the stage to the edge fo the screen
 var stageOffset;
+// true when the game is over
+var gameEnd;
 
 //Code begins executing here
 initGame();
 
 //Running this function will restart the game.
 function initGame(){
+	// the game has just begun
+    gameEnd = false;
+
 	//get a random puzzle type
 	puzzletype = Math.floor(Math.random()*3);
 	
@@ -253,6 +258,8 @@ function drawBoard(gamestate, victorycheck = true){
 			else if (puzzletype == 2 && Math.floor(height%2) == 0 && Math.floor(width%2)== 0){cellclass = 'marker'}
 			else if (puzzletype == 2 && Math.floor(height%2) == 1 && Math.floor(width%2)== 1){cellclass = 'marker'}
 			
+			// at the end of the game, turn all cells into markers
+			else if (gameEnd == true){cellclass = "marker"}
 			else {cellclass = 'token'}
 			
 			// for the current position in the loop, take the color from the game state 
@@ -285,11 +292,16 @@ function drawBoard(gamestate, victorycheck = true){
 	markMarkers();
 
 	// if the game state matches the solution, AND if you havent specified that we shouldnt be checking for victory
-	if(checkSolution(gamestate) && victorycheck == true){
+	// and if the game is not over
+	if(checkSolution(gamestate) && victorycheck == true && gameEnd == false){
 		//you win, fade out the stage slowly
 		stage.fadeOut().fadeIn(3000);
 		//put the difficulty button on the screen
 		addDifficultyButton();
+		// the game is over
+		gameEnd = true;
+		// redraw the board to stop tiles from being draggable
+		drawBoard(gamestate, false);
 	} else {
 		//if you didnt win, just add the number of moves that youve taken under the board
 		stage.append("Moves: "+moves);
@@ -427,11 +439,15 @@ function release(token){
 			gamestate[sourcey][sourcex] = targetColor;
 		}
 		
-		// increase the number in the move indicator
-		moves++;
+		// if the game is not over
+		if (gameEnd == false){
+			// increase the number in the move indicator 
+			moves++;		
+			// redraw the board with the updated game state
+			drawBoard(gamestate);
+		}
 		
-		// redraw the board with the updated game state
-		drawBoard(gamestate);
+
 	}
 }
 

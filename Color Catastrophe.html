@@ -104,15 +104,21 @@ var solution = [];
 // store the distance of the stage to the edge fo the screen
 var stageOffset;
 // true when the game is over
-var gameEnd;
+var gameEnd = true;
 
 //Code begins executing here
 initGame();
 
 //Running this function will restart the game.
 function initGame(){
-	// the game has just begun
-    gameEnd = false;
+
+	//recalculate the stage layout math if the window is rezised
+	$(window).resize(function(){
+		// recalculate stage size
+		stageSize = setStageDimensions();
+		// redraw the board
+		drawBoard(gamestate, false);
+	});
 
 	//get a random puzzle type
 	puzzletype = Math.floor(Math.random()*3);
@@ -151,12 +157,17 @@ function initGame(){
 		//shuffle the non moving colors in the current gamestate
 		shuffleGame();
 		//redraw the board with the new shuffled game state
+		//the game has begun
+		gameEnd = false;
+		
 		drawBoard(gamestate, false);
 	//fade the board back in with a medium speed for dramatic effect...	
 	}).fadeIn(2000);
 	
 	// take note of how far away the left side of the board is from the left side of the screen
 	stageOffset = stage.offset();
+	
+
 }
 
 // if people let go of the mouse outside the board, just redraw the board
@@ -275,7 +286,7 @@ function drawBoard(gamestate, victorycheck = true){
 			else if (puzzletype == 2 && Math.floor(height%2) == 1 && Math.floor(width%2)== 1){cellclass = 'marker'}
 			
 			// at the end of the game, turn all cells into markers
-			else if (gameEnd == true){cellclass = "marker"}
+			else if (gameEnd == true){cellclass = "GameEnd"}
 			else {cellclass = 'token'}
 			
 			// for the current position in the loop, take the color from the game state 
@@ -309,13 +320,15 @@ function drawBoard(gamestate, victorycheck = true){
 
 	// if the game state matches the solution, AND if you havent specified that we shouldnt be checking for victory
 	// and if the game is not over
-	if(checkSolution(gamestate) && victorycheck == true && gameEnd == false){
+	if(checkSolution(gamestate) == true && victorycheck == true && gameEnd == false){
 		//you win, fade out the stage slowly
 		stage.fadeOut().fadeIn(3000);
-		//put the difficulty button on the screen
-		addDifficultyButton();
 		// the game is over
 		gameEnd = true;
+		
+		//put the difficulty button on the screen
+		addDifficultyButton();
+	
 		// redraw the board to stop tiles from being draggable
 		drawBoard(gamestate, false);
 	} else {
@@ -328,7 +341,9 @@ function drawBoard(gamestate, victorycheck = true){
 function addDifficultyButton(){
 	// add this to the outer boundary div so it doesnt get redrawn with the board
 	// i put it in a span in order to delete the surrounding code along with the button later
-	$("#boundary").append("<span id='diffbutton'><BR><button onclick='increaseDifficulty();'>Increase Difficulty</button></span>");
+	if(gameEnd == true){
+		$("#boundary").append("<span id='diffbutton'><BR><button onclick='increaseDifficulty();'>Increase Difficulty</button></span>");
+	}
 }
 
 // When you click the difficulty button, remove it from the page entirely
@@ -409,61 +424,63 @@ function populateStage(){
 //when you let go of the mouse button
 function release(token){
 
+	if (gameEnd == false){
 
-	// if the thing you clicked when you first clicked the mouse was not a non moving part of the puzzle (marker)
-	if (sourceID != "marker"){
-		// x is the distance between the left of the token your mouse is on right now, and the left of the screen
-		var x = $(token).offset().left;
-		// y is the distance between the top of that token, and the top of the screen
-		var y = $(token).offset().top;
-		//subtract the distance of the token from the edge of the screen,
-		//from the distance of the board, to the edge of the screen,
-		//and store that back into x and y, now they store the distance from the token to the edge of the board
-		x -= stageOffset.left;
-		y -= stageOffset.top;
-		//now take that distance, and divide each one by the size of the token in pixels
-		//round them to the closest whole number, and store them back into x and y
-		x = Math.round(x / tokenSize);
-		y = Math.round(y / tokenSize);
-		
-		//now you know the id of the cell that you released the mouse on
-		var targetID = "#x"+x+"y"+y;
+		// if the thing you clicked when you first clicked the mouse was not a non moving part of the puzzle (marker)
+		if (sourceID != "marker"){
+			// x is the distance between the left of the token your mouse is on right now, and the left of the screen
+			var x = $(token).offset().left;
+			// y is the distance between the top of that token, and the top of the screen
+			var y = $(token).offset().top;
+			//subtract the distance of the token from the edge of the screen,
+			//from the distance of the board, to the edge of the screen,
+			//and store that back into x and y, now they store the distance from the token to the edge of the board
+			x -= stageOffset.left;
+			y -= stageOffset.top;
+			//now take that distance, and divide each one by the size of the token in pixels
+			//round them to the closest whole number, and store them back into x and y
+			x = Math.round(x / tokenSize);
+			y = Math.round(y / tokenSize);
+			
+			//now you know the id of the cell that you released the mouse on
+			var targetID = "#x"+x+"y"+y;
 
-		// get the color of the cell we originally clicked on
-		var sourceColor = $("#"+sourceID).css("background-color");
-		// get the color of the cell we let go of the mouse on
-		var targetColor = $(targetID).css('background-color');
-		// cut up the id of the cell we clicked on originally (ie x1y1)
-		// first split it at the letter x
-		var sourcex = sourceID.split("x");
-		// take the part after the x (ie 1y1)
-		sourcex = sourcex[1];
-		// now split that at the y
-		sourcex.split("y");
-		// call the part after the y sourcey
-		sourcey = sourcex[2];
-		//call the part before the y sourcex
-		sourcex = sourcex[0];
-		
-		//if the cell we let go of the mouse on is  not a marker
-		if($(targetID).attr('class') != "marker"){
-			// put the color of the cell we originally clicked on at the location that we let go
-			// as it corresponds to the 2d array of colors in the game state
-			gamestate[y][x] = sourceColor;
-			// do the same in reverse, take the color we let go on, and put it in the spot of the
-			// cell that we originally clicked in the gamestate
-			gamestate[sourcey][sourcex] = targetColor;
+			// get the color of the cell we originally clicked on
+			var sourceColor = $("#"+sourceID).css("background-color");
+			// get the color of the cell we let go of the mouse on
+			var targetColor = $(targetID).css('background-color');
+			// cut up the id of the cell we clicked on originally (ie x1y1)
+			// first split it at the letter x
+			var sourcex = sourceID.split("x");
+			// take the part after the x (ie 1y1)
+			sourcex = sourcex[1];
+			// now split that at the y
+			sourcex.split("y");
+			// call the part after the y sourcey
+			sourcey = sourcex[2];
+			//call the part before the y sourcex
+			sourcex = sourcex[0];
+			
+			//if the cell we let go of the mouse on is  not a marker
+			if($(targetID).attr('class') != "marker"){
+				// put the color of the cell we originally clicked on at the location that we let go
+				// as it corresponds to the 2d array of colors in the game state
+				gamestate[y][x] = sourceColor;
+				// do the same in reverse, take the color we let go on, and put it in the spot of the
+				// cell that we originally clicked in the gamestate
+				gamestate[sourcey][sourcex] = targetColor;
+			}
+			
+			// if the game is not over
+			if (gameEnd == false){
+				// increase the number in the move indicator 
+				moves++;		
+				// redraw the board with the updated game state
+				drawBoard(gamestate);
+			}
+			
+
 		}
-		
-		// if the game is not over
-		if (gameEnd == false){
-			// increase the number in the move indicator 
-			moves++;		
-			// redraw the board with the updated game state
-			drawBoard(gamestate);
-		}
-		
-
 	}
 }
 
@@ -491,36 +508,42 @@ function checkSolution(gamestate){
 // so that it can be seen above other cells when moving it around
 // this is also the function which is called when you initially click on a movable token
 function toFront(frontToken){
-	// find out if the cell clicked is a marker, or a token (its stored in the class of the div)
-	var cellclass = $(frontToken).attr('class');
-	// if the cell is a not a marker
-	if (cellclass != "marker"){	
-		//store the id of the div into the global 'sourceID' variable
-		sourceID = $(frontToken).attr('id');
-	} else {
-		//otherwise this is a marker, store that in the sourceID variable instead
-		//so that when we let go of the mouse, we know not to change the game state
-		// and can just redraw instead
-		//(IT STILL COSTS A POINT!)
-		sourceID = "marker";
-	}
-	
-	
-	//loop through every token on the screen
-	for(var index = 0; index < tokenArray.length; index++){
-		// set the z index of those tokens to 1
-		$(tokenArray[index]).css("z-index", 1);
-	}
-	// set the z index of the token just clicked to 2
-	$(frontToken).css('z-index', 2);
+		// find out if the cell clicked is a marker, or a token (its stored in the class of the div)
+		var cellclass = $(frontToken).attr('class');
+		// if the cell is a not a marker
+		if (cellclass != "marker"){	
+			//store the id of the div into the global 'sourceID' variable
+			sourceID = $(frontToken).attr('id');
+		} else {
+			//otherwise this is a marker, store that in the sourceID variable instead
+			//so that when we let go of the mouse, we know not to change the game state
+			// and can just redraw instead
+			//(IT STILL COSTS A POINT!)
+			sourceID = "marker";
+		}
+		
+		
+		//loop through every token on the screen
+		for(var index = 0; index < tokenArray.length; index++){
+			// set the z index of those tokens to 1
+			$(tokenArray[index]).css("z-index", 1);
+		}
+		// set the z index of the token just clicked to 2
+		$(frontToken).css('z-index', 2);
+
 }
 
 //make the board container change size based on the size of the page
 function setStageDimensions(){
 	// the height of the board is 80% of the height of the page
 	stage.height("70%");
+	stage.height(Math.floor(stage.height));
 	// the width is the same as the height
 	stage.width(stage.height());
+	//(re)calculate token size
+	tokenSize = stageSize / difficulty;
+	// take note of how far away the left side of the board is from the left side of the screen
+	stageOffset = stage.offset();
 	// pass this size back to the caller, its used to determine the token size
 	return(stage.height());
 }
